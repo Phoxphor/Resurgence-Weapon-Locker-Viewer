@@ -293,11 +293,11 @@
     <script>
 
             // --- AUDIO SYSTEM ---
-    const sounds = {
-    sell: new Audio('Sound Effects/sell.mp3'),
-        // Preload pop sounds from the subfolder
-    pops: Array.from({ length: 9 }, (_, i) => new Audio(`Sound Effects/pop0${i + 1}.mp3`))
-    };
+            const sounds = {
+    // Change "Sound Effects" to "SoundEffects"
+    sell: new Audio('SoundEffects/sell.mp3'), 
+    pops: Array.from({ length: 9 }, (_, i) => new Audio(`SoundEffects/pop0${i + 1}.mp3`))
+};
 
     function playPopSound() {
         let index = 0;
