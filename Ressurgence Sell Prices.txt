@@ -1,0 +1,106 @@
+AR
+
+VSS - 600
+FAMAS F1 - 700
+AUG A3 - 800
+G3 - 800
+Galil - 800
+M16 - 800
+StG 44 - 800
+AK 12 - 900
+FN SCAR H - 1000
+M4A1 - 1000
+AK 47 - 1000
+
+Ranged Rifles
+
+Remington 700 - 300
+Kar98k - 400
+Lee Enfield - 400
+Mosin Nagant - 400
+Spingfield - 400
+Gewehr 43 - 600
+M1 Garand - 600
+SVT 40 - 600
+SKS - 700
+AWP - 1200
+
+Submachine Guns
+
+Mini Uzi - 200
+AR 9 - 300
+MP 40 - 300
+PP 19 Bizon - 300
+PPSh 41 - 300
+Sten Mk. II - 300
+UMP 45 - 300
+Draco - 400
+KRISS Vector - 400
+MP5 - 400
+P90 - 400
+Thompson - 400
+
+Heavy Weapons
+
+Model 1897 - 300
+Sawed Off - 300
+M590 - 400
+SPAS 12 - 400
+Saiga - 500
+Bren Mk.1 - 800
+M1918 BAR - 800
+DP27 - 1000
+M249 - 1200
+PKM - 1200
+Barret M82 - 2500
+
+Pistols
+
+Baretta M9 - 100
+Luger P08 - 100
+M1911 - 100
+TT 30 - 100
+FN Five seveN - 200
+Glock 18C - 200
+Skorpion - 200
+TEC 9 - 200
+Webley Revolver - 200
+Revolver - 400
+Dessert Eagle - 500
+
+Attachments
+
+Angled Foregrip - 25
+Canted Sight - 25
+Halosight - 25
+Kar98k Scope - 25
+Large Supressor - 25
+Lee Enfield Scope - 25
+Mosin Scope - 25
+Pistol Laser Sight - 25
+Pistol Sight - 25
+Red Dot Sight - 25
+Rifle Laser Sight - 25
+Small Suppressor - 25
+Springfield Scope - 25
+Vertical Foregrip - 25
+ACOG Sight - 50
+
+Medical Supplies
+
+Bandage - 100
+Kevlar Full Kit - 100
+Kevlar Vest Kit - 100
+Painkillers - 100
+Sniper Scope - 100
+Adrenaline - 200
+
+Utilities
+
+Smoke Grenade - 100
+Frag Grenade - 200
+Ghillie Suit - 300
+Red Keycard - 300
+Blue Keycard - 400
+Green Keycard - 500
+C4 - 500

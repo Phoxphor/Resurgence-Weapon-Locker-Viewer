@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weapons Storage Locker</title>
+    <style>
+        :root { 
+            --theme-color: #a3f7a3; 
+            --bg-dark: #070807;
+            --box-border: #1a1a1a;
+            --label-bg: #111;
+        }
+
+        * { box-sizing: border-box; }
+        body { background: #000; margin: 0; overflow: hidden; font-family: 'Courier New', monospace; color: #fff; }
+
+        /* --- SCALING CONTAINER --- */
+        #canvas-1080p {
+            width: 1920px; height: 1080px; position: relative;
+            transform: scale(calc(min(100vw / 1920, 100vh / 1080))); 
+            transform-origin: center; margin: auto;
+        }
+
+        #border-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('BOARDER.png') no-repeat center/contain; 
+            z-index: 100; pointer-events: none;
+        }
+
+        #ui-screen {
+            position: absolute; 
+            top: 142px;    
+            left: 265px;   
+            width: 1386px; 
+            height: 797px; 
+            background: var(--bg-dark); 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+
+        /* --- VISUAL EFFECTS --- */
+        .scanlines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 50; pointer-events: none;
+            background: linear-gradient(rgba(18,16,16,0) 49%, rgba(0,0,0,0.16) 51%, rgba(18,16,16,0) 100%);
+            background-size: 100% 2px;
+            animation: scanMove 2.2s linear infinite;
+            opacity:0.7;
+            mix-blend-mode: lighten;
+        }
+        @keyframes scanMove {
+            0% { background-position-y: 0px; }
+            100% { background-position-y: 2px; }
+        }
+
+        .glitch { animation: glitchy 0.5s cubic-bezier(0.25,0,0.75,1) 0s 1; }
+        @keyframes glitchy {
+            0% { filter: none; transform: none;}
+            8% { filter: brightness(1.3) contrast(2) hue-rotate(-8deg); transform: translateY(-2px) skewX(1deg);}
+            14% { filter: hue-rotate(12deg); transform: translateX(2px);}
+            19% { filter: none; transform: none;}
+            24% { filter: brightness(1.15) contrast(2.1) hue-rotate(30deg); transform: translateY(1px) skewY(2deg);}
+            33% { filter: grayscale(0.6); transform: translateX(-3px);}
+            44% { filter: none; transform: none;}
+            52% { filter: brightness(1.25) contrast(0.8) hue-rotate(-14deg); transform: translateY(-1px) skewX(-2deg);}
+            59% { filter: hue-rotate(7deg) brightness(1.1); transform: translateX(0.5px);}
+            73% { filter: grayscale(0.3); transform: translateY(1.5px);}
+            84% { filter: none; transform: none;}
+            100% { filter: none; transform: none;}
+        }
+
+        /* --- LOGIN & HEADER --- */
+        #login-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 60; }
+        textarea { 
+            width: 850px; height: 450px; background: #000; color: var(--theme-color); 
+            border: 1px solid #222; padding: 15px; font-family: monospace; outline: none; font-size: 14px;
+        }
+
+        header { display: flex; justify-content: space-between; padding: 15px 30px; border-bottom: 1px solid #222; align-items: center; background: #090b09;}
+        #player-display { font-size: 22px; font-weight: bold; color: var(--theme-color); /* removed text-transform: uppercase; */ }
+        #player-cash { font-size: 22px; font-weight: bold; color: var(--theme-color); }
+
+        #view-toggle { display: flex; gap: 20px; font-size: 18px; font-weight: bold; }
+        .view-btn { background: none; border: none; color: #444; cursor: pointer; text-transform: uppercase; font-family: inherit; }
+        .view-btn.active { color: #fff; text-shadow: 0 0 8px var(--theme-color); }
+
+        /* --- TABS --- */
+        #category-tabs { display: flex; gap: 2px; padding: 10px; background: #050505; }
+        .tab-btn {
+            flex: 1; height: 42px; background: #111; border: 1px solid #222;
+            color: #555; font-size: 10px; font-weight: bold; cursor: pointer; text-transform: uppercase;
+        }
+        .tab-btn.active { border: 1px solid var(--theme-color) !important; color: var(--theme-color) !important; background: #1a1c1a; }
+
+        /* --- GRID & CARDS --- */
+        #item-grid {
+            display: grid; 
+            grid-template-columns: repeat(6, 1fr); 
+            grid-template-rows: repeat(3, 1fr); 
+            gap: 12px; 
+            padding: 15px; 
+            flex-grow: 1;
+            overflow: hidden; 
+        }
+
+        .item-card {
+            background: rgba(255, 255, 255, 0.02); border: 1px solid var(--box-border);
+            display: flex; flex-direction: column; justify-content: space-between; padding: 10px;
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+            position: relative;
+        }
+        .item-card:hover {
+            transform: scale(1.05);
+            border-color: var(--theme-color);
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 0 10px rgba(163, 247, 163, 0.2);
+            z-index: 10;
+        }
+
+        .item-image {
+            flex-grow: 1; width: 100%; height: 0; 
+            object-fit: contain; margin: 5px 0;
+            filter: drop-shadow(0 0 5px rgba(0,0,0,0.5));
+            transform: scale(1.3);
+        }
+
+        .name-box, .num-box { background: var(--label-bg); border: 1px solid #333; padding: 4px 8px; font-size: 11px; color: #999; display: inline-block; }
+        .num-box { color: #ccc; } 
+        .card-bottom { text-align: right; }
+        
+        #sync-btn { margin-top: 20px; padding: 12px 60px; background: transparent; border: 1px solid var(--theme-color); color: var(--theme-color); cursor: pointer; font-weight: bold; }
+
+        /* --- SELL MODAL STYLES (UPDATED) --- */
+        #sell-modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 90;
+            display: none;
+            align-items: center; justify-content: center;
+        }
+
+        .modal-box {
+            width: 340px; 
+            height: 420px; /* Square-ish form factor */
+            background: #000;
+            border: 2px solid var(--theme-color);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            gap: 6px;
+        }
+
+        .modal-preview {
+            background: radial-gradient(circle, #222 0%, #000 100%);
+            border: 1px solid #333;
+            flex: 2; /* Takes up top 2/3rds */
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .modal-preview img { width: 70%; transform: scale(1.5); filter: drop-shadow(0 0 10px #000); }
+        .modal-labels { position: absolute; top: 10px; left: 10px; }
+        
+        /* Bottom Area: Cancel Left, Sell Stack Right */
+        .modal-bottom {
+            flex: 1;
+            display: flex;
+            gap: 6px;
+        }
+
+        .modal-btn {
+            background: #111; color: #fff;
+            border: 1px solid #333;
+            font-family: inherit; font-weight: bold; font-size: 14px;
+            cursor: pointer; text-transform: uppercase;
+        }
+
+        /* Large Cancel Button on Left */
+        .btn-cancel {
+            flex: 1;
+            border-color: #522; color: #eaa;
+            font-size: 16px;
+        }
+        .btn-cancel:hover { background: #311; }
+
+        /* The Stack: Up, Sell, Down */
+        .sell-stack {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        /* Tiny Arrow Buttons */
+        .btn-arrow {
+            height: 25px;
+            background: #0a0a0a;
+            color: #666;
+            border: 1px solid #222;
+        }
+        .btn-arrow:hover:not(:disabled) { background: #222; color: #fff; }
+        .btn-arrow:disabled { opacity: 0.3; cursor: default; }
+
+        /* Main Sell Button */
+        .btn-sell {
+            flex-grow: 1;
+            border-color: var(--theme-color); color: var(--theme-color);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            line-height: 1.2;
+        }
+        .btn-sell:hover:not(:disabled) { background: rgba(163, 247, 163, 0.1); box-shadow: inset 0 0 10px var(--theme-color); }
+        .btn-sell:disabled { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; }
+
+    </style>
+</head>
+<body>
+
+    <div id="canvas-1080p">
+        <div id="border-overlay"></div>
+        <div id="ui-screen">
+            <div class="scanlines"></div>
+            
+            <div id="login-screen">
+                <div style="color: var(--theme-color); margin-bottom: 12px; font-weight: bold;">INPUT FULL /INSPECT DATA</div>
+                <textarea id="data-input" placeholder="PASTE DATA BLOCK..."></textarea>
+                <button id="sync-btn" onclick="processData()">SYNC DATA</button>
+            </div>
+
+            <div id="main-ui" style="display: none; flex-direction: column; height: 100%;">
+                <header>
+                    <div style="display:flex; align-items:center;">
+                        <div id="player-display">PLAYER</div> 
+                    </div>
+                    
+                    <div id="view-toggle">
+                        <button class="view-btn active" id="btn-locker" onclick="switchMainView('Locker')">Locker</button>
+                        <span style="color:#222">|</span>
+                        <button class="view-btn" id="btn-mailbox" onclick="switchMainView('Mailbox')">Mailbox</button>
+                    </div>
+                    
+                    <div id="player-cash">$0</div>
+                </header>
+                
+                <nav id="category-tabs">
+                    <button class="tab-btn" onclick="filterItems('Assault Rifles')">Assault Rifles</button>
+                    <button class="tab-btn" onclick="filterItems('Ranged Rifles')">Ranged Rifles</button>
+                    <button class="tab-btn" onclick="filterItems('Submachine Guns')">Submachine Guns</button>
+                    <button class="tab-btn" onclick="filterItems('Heavy Weapons')">Heavy Weapons</button>
+                    <button class="tab-btn" onclick="filterItems('Pistols')">Pistols</button>
+                    <button class="tab-btn" onclick="filterItems('Attachments')">Attachments</button>
+                    <button class="tab-btn" onclick="filterItems('Medical Supplies')">Medical Supplies</button>
+                    <button class="tab-btn" onclick="filterItems('Utility')">Utility</button>
+                </nav>
+
+                <div id="item-grid"></div>
+            </div>
+
+            <div id="sell-modal-overlay">
+                <div class="modal-box">
+                    <div class="modal-preview">
+                        <div class="modal-labels">
+                            <div class="name-box" id="modal-item-name">Item Name</div>
+                        </div>
+                        <img id="modal-item-img" src="" alt="">
+                        <div style="position: absolute; bottom: 10px; right: 10px;">
+                             <div class="num-box" id="modal-item-qty">x1</div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-bottom">
+                        <button class="modal-btn btn-cancel" onclick="closeSellMenu()">
+                            Cancel
+                        </button>
+                        
+                        <div class="sell-stack">
+                            <button class="modal-btn btn-arrow" id="btn-qty-up" onclick="adjustSellQty(1)">^</button>
+                            
+                            <button class="modal-btn btn-sell" id="btn-confirm-sell" onclick="performSell()">
+                                 <span id="sell-lbl-count">SELL 1</span>
+                                 <span id="sell-lbl-price" style="font-size:12px; opacity:0.8">$100</span>
+                            </button>
+                            
+                            <button class="modal-btn btn-arrow" id="btn-qty-down" onclick="adjustSellQty(-1)">⌄</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            </div>
+    </div>
+
+    <script>
+
+            // --- AUDIO SYSTEM ---
+    const sounds = {
+    sell: new Audio('Sound Effects/sell.mp3'),
+        // Preload pop sounds from the subfolder
+    pops: Array.from({ length: 9 }, (_, i) => new Audio(`Sound Effects/pop0${i + 1}.mp3`))
+    };
+
+    function playPopSound() {
+        let index = 0;
+        
+        // Rarity Chain: 50% chance to move to the next "rarer" sound
+        // Loop continues as long as we win the flip and haven't hit the last sound (index 8)
+        while (Math.random() > 0.5 && index < sounds.pops.length - 1) {
+            index++;
+        }
+
+        // Play the selected sound
+        const sfx = sounds.pops[index];
+        sfx.currentTime = 0; // Reset in case it's already playing
+        sfx.play().catch(e => console.log("Audio play blocked: interaction required."));
+    }
+
+    function playSellSound() {
+        sounds.sell.currentTime = 0;
+        sounds.sell.play().catch(e => console.log("Audio play blocked."));
+    }
+        // --- PRICING DATA ---
+        const itemPrices = {
+            "VSS": 600, "FAMAS F1": 700, "AUG A3": 800, "G3": 800, "Galil": 800, 
+            "M16": 800, "StG 44": 800, "AK 12": 900, "FN SCAR H": 1000, "M4A1": 1000, "AK 47": 1000,
+            "Remington 700": 300, "Kar98k": 400, "Lee Enfield": 400, "Mosin Nagant": 400, 
+            "Spingfield": 400, "Gewehr 43": 600, "M1 Garand": 600, "SVT 40": 600, 
+            "SKS": 700, "AWP": 1200,
+            "Mini Uzi": 200, "AR 9": 300, "MP 40": 300, "PP 19 Bizon": 300, "PPSh 41": 300, 
+            "Sten Mk. II": 300, "UMP 45": 300, "Draco": 400, "KRISS Vector": 400, 
+            "MP5": 400, "P90": 400, "Thompson": 400,
+            "Model 1897": 300, "Sawed Off": 300, "M590": 400, "SPAS 12": 400, "Saiga": 500, 
+            "Bren Mk.1": 800, "M1918 BAR": 800, "DP27": 1000, "M249": 1200, "PKM": 1200, "Barret M82": 2500,
+            "Baretta M9": 100, "Luger P08": 100, "M1911": 100, "TT 30": 100, 
+            "FN Five seveN": 200, "Glock 18C": 200, "Skorpion": 200, "TEC 9": 200, 
+            "Webley Revolver": 200, "Revolver": 400, "Dessert Eagle": 500,
+            "Angled Foregrip": 25, "Canted Sight": 25, "Halosight": 25, "Kar98k Scope": 25, 
+            "Large Supressor": 25, "Lee Enfield Scope": 25, "Mosin Scope": 25, "Pistol Laser Sight": 25, 
+            "Pistol Sight": 25, "Red Dot Sight": 25, "Rifle Laser Sight": 25, "Small Suppressor": 25, 
+            "Springfield Scope": 25, "Vertical Foregrip": 25, "ACOG Sight": 50,
+            "Bandage": 100, "Kevlar Full Kit": 100, "Kevlar Vest Kit": 100, 
+            "Painkillers": 100, "Sniper Scope": 100, "Adrenaline": 200,
+            "Smoke Grenade": 100, "Frag Grenade": 200, "Ghillie Suit": 300, 
+            "Red Keycard": 300, "Blue Keycard": 400, "Green Keycard": 500, "C4": 500
+        };
+
+        // --- Main PNGS ---
+        const availableImages = [
+        "1911.png", "57.png", "AK.png", "ak12.png", "AK47.png", "akshorty.png",
+        "AntiTank.png", "AR.png", "ar9.png", "aug.png", "AutoShotgun.png",
+        "AutoSniper.png", "awp.png", "Bluecard.png", "cet9.png", "de.png",
+        "DrumShotgun.png", "galul.png", "Greencard.png", "Grenade.png",
+        "hunting.png", "kar98k.png", "kross.png", "LMGA.png", "luger.png",
+        "m16.png", "m1garand.png", "m9.png", "MP5.png", "P90.png", "Redcard.png",
+        "Revolver.png", "sawedoff.png", "scur.png", "Shotgun.png", "skorpion.png",
+        "sks.png", "SMG.png", "sndbomb.png", "sock.png", "stg.png", "TT-30.png",
+        "unknown.png", "uzi.png", "vanas.png", "vzz.png", "Webley.png"
+    ];
+
+        // --- Main DATA ---
+        const itemMap = {
+        "Assault Rifles": { "vzz": "VSS", "vanas": "FAMAS F1", "aug": "AUG A3", "g3": "G3", "galul": "Galil", "m16": "M16", "stg44": "StG 44", "stg": "StG 44", "ak12": "AK 12", "scur": "FN SCAR H", "ar": "M4A1", "ak47": "AK 47" },
+        "Ranged Rifles": { "hunting": "Remington 700", "kar98": "Kar98k", "kar98k": "Kar98k", "leeenfield": "Lee Enfield", "mosin": "Mosin Nagant", "springfield": "Spingfield", "g43": "Gewehr 43", "m1garand": "M1 Garand", "svt40": "SVT 40", "sks": "SKS", "awp": "AWP" },
+        "Submachine Guns": { "uzi": "Mini Uzi", "ar9": "AR 9", "mp40": "MP 40", "ak": "PP 19 Bizon", "ppsh": "PPSh 41", "sten": "Sten Mk. II", "smg": "UMP 45", "akshorty": "Draco", "kross": "KRISS Vector", "mp5": "MP5", "p90": "P90", "thompson": "Thompson" },
+        "Heavy Weapons": { "trenchgun": "Model 1897", "sawedoff": "Sawed Off", "shotgun": "M590", "autoshotgun": "SPAS 12", "drumshotgun": "Saiga", "bren": "Bren Mk.1", "bar": "M1918 BAR", "dp27": "DP27", "lmga": "M249", "pkm": "PKM", "antitank": "Barret M82" },
+        "Pistols": { "m9": "Baretta M9", "luger": "Luger P08", "1911": "M1911", "tokarev": "TT 30", "tt30": "TT 30", "57": "FN Five seveN", "sock": "Glock 18C", "skorpion": "Skorpion", "cet9": "TEC 9", "webley": "Webley Revolver", "revolver": "Revolver", "de": "Dessert Eagle" },
+        "Attachments": { "grip_angled": "Angled Foregrip", "canted_reddot": "Canted Sight", "holo": "Halosight", "scope_kar98": "Kar98k Scope", "supp_rifle": "Large Supressor", "scope_leeenfield": "Lee Enfield Scope", "scope_mosin": "Mosin Scope", "laser_pistol": "Pistol Laser Sight", "reddot_pistol": "Pistol Sight", "reddot": "Red Dot Sight", "laser_rifle": "Rifle Laser Sight", "supp_pistol": "Small Suppressor", "scope_springfield": "Springfield Scope", "grip_vertical": "Vertical Foregrip", "acog": "ACOG Sight" },
+        "Medical Supplies": { "bandage": "Bandage", "armorkit": "Kevlar Full Kit", "vestonlykit": "Kevlar Vest Kit", "painkillers": "Painkillers", "scope": "Sniper Scope", "adrenaline": "Adrenaline" },
+        "Utility": { "smoke": "Smoke Grenade", "grenade": "Frag Grenade", "ghillie": "Ghillie Suit", "keycardred": "Red Keycard", "keycardblue": "Blue Keycard", "keycardgreen": "Green Keycard", "re_c4": "C4" }
+    };
+
+        let lockerData = {};
+        let mailboxData = {};
+        let currentMainView = 'Locker';
+        let currentTab = 'Assault Rifles';
+        const colorPalette = {
+            "0": "#ffffff", "1": "#ff4444", "2": "#ff8c00", "3": "#ffff44",
+            "4": "#a3f7a3", "5": "#00f0ff", "6": "#4488ff", "7": "#9d44ff", "8": "#ff44cc"
+        };
+        let currentThemeColor = colorPalette["4"]; 
+
+        // --- SELL MODAL STATE ---
+        let selectedItem = { id: null, name: null, source: null, maxQty: 0, sellQty: 1, unitPrice: 0 };
+
+        function triggerGlitchAnim(element) {
+            if (!element) return;
+            element.classList.add('glitch');
+            const remove = () => element.classList.remove('glitch');
+            element.addEventListener('animationend', remove, { once: true });
+        }
+
+        function getTexturePath(id) {
+    if (!id) return "Icons/unknown.png";
+    const cleanId = id.toLowerCase().trim();
+
+    const overrides = {
+        "re_c4": "sndbomb.png",
+        "tokarev": "TT-30.png",
+        "tt30": "TT-30.png",
+        "stg44": "stg.png",
+        "kar98": "kar98k.png",
+        "keycardred": "Redcard.png",
+        "keycardblue": "Bluecard.png",
+        "keycardgreen": "Greencard.png"
+    };
+
+    if (overrides[cleanId]) return "Icons/" + overrides[cleanId];
+
+    const found = availableImages.find(img => img.toLowerCase() === cleanId + ".png");
+    
+    if (found) return "Icons/" + found;
+    return "Icons/unknown.png";
+}
+
+        function setThemeColor(newThemeColor) {
+            currentThemeColor = newThemeColor;
+            document.documentElement.style.setProperty('--theme-color', newThemeColor);
+            
+            document.getElementById('player-display').style.color = newThemeColor;
+            document.getElementById('player-cash').style.color = newThemeColor;
+            document.querySelector('.modal-box').style.borderColor = newThemeColor;
+            
+            document.querySelectorAll('.tab-btn.active').forEach(btn => {
+                btn.style.borderColor = newThemeColor;
+                btn.style.color = newThemeColor;
+            });
+            
+            const sellBtn = document.getElementById('btn-confirm-sell');
+            if(sellBtn) {
+                sellBtn.style.color = newThemeColor;
+                sellBtn.style.borderColor = newThemeColor;
+            }
+
+            document.querySelectorAll('.view-btn.active').forEach(btn => {
+                btn.style.textShadow = "0 0 8px " + newThemeColor;
+            });
+            const syncBtn = document.getElementById('sync-btn');
+            if (syncBtn) {
+                syncBtn.style.borderColor = newThemeColor;
+                syncBtn.style.color = newThemeColor;
+            }
+        }
+
+        function processData() {
+            const raw = document.getElementById('data-input').value;
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l !== "");
+            
+            lockerData = {}; 
+            mailboxData = {};
+            let newThemeColor = colorPalette["4"];
+            let foundUsername = "PLAYER";
+            let levelValue = 0;
+            let currentSection = "header";
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+
+                // 1. Detect Section Changes
+                if (line === "Items") {
+                    currentSection = "locker";
+                    continue;
+                } else if (line === "Mailbox") {
+                    currentSection = "mailbox";
+                    continue;
+                }
+
+                // 2. Parse Header Section (Alternating Lines)
+                if (currentSection === "header") {
+                    if (line.startsWith("Data for")) {
+                        foundUsername = line.replace("Data for ", "").trim();
+                    } else {
+                        // This is a Key/Value pair on two lines
+                        const key = line.toLowerCase();
+                        const value = lines[i + 1] || "";
+                        
+                        if (key === "usd" || value.startsWith("$")) {
+                            document.getElementById('player-cash').innerText = value;
+                        }
+                        if (key === "color" && colorPalette[value]) {
+                            newThemeColor = colorPalette[value];
+                        }
+                        if (key === "prestige" || key === "level") {
+                            levelValue = parseInt(value) || 0;
+                        }
+                        i++; // Skip the next line as it was the value
+                    }
+                } 
+                // 3. Parse Items & Mailbox (Colon Format)
+                else if (currentSection === "locker" || currentSection === "mailbox") {
+                    if (line.includes(":")) {
+                        const [id, qty] = line.split(":");
+                        const cleanId = id.trim().toLowerCase();
+                        const cleanQty = parseInt(qty.trim()) || 0;
+                        
+                        if (currentSection === "locker") {
+                            lockerData[cleanId] = cleanQty;
+                        } else {
+                            mailboxData[cleanId] = cleanQty;
+                        }
+                    }
+                }
+            }
+
+            // Update UI Header
+            const headerText = levelValue > 0 ? `[LVL ${levelValue}] ${foundUsername}` : foundUsername;
+            document.getElementById('player-display').innerText = headerText;
+
+            // Apply Theme and Switch Screen
+            setThemeColor(newThemeColor);
+            triggerGlitchAnim(document.getElementById('ui-screen'));
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-ui').style.display = 'flex';
+            filterItems(currentTab);
+        }
+
+        function switchMainView(view) {
+            playPopSound();
+            currentMainView = view;
+            document.getElementById('btn-locker').classList.toggle('active', view === 'Locker');
+            document.getElementById('btn-mailbox').classList.toggle('active', view === 'Mailbox');
+            document.getElementById('category-tabs').style.display = (view === 'Mailbox') ? 'none' : 'flex';
+            renderGrid();
+            setThemeColor(currentThemeColor);
+        }
+
+        function filterItems(cat) {
+            playPopSound();
+            currentTab = cat;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const isActive = btn.innerText.trim().toUpperCase() === cat.toUpperCase();
+                btn.classList.toggle('active', isActive);
+                if (isActive) {
+                    btn.style.borderColor = currentThemeColor;
+                    btn.style.color = currentThemeColor;
+                } else {
+                    btn.style.borderColor = "#222";
+                    btn.style.color = "#555";
+                }
+            });
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('item-grid');
+            grid.innerHTML = '';
+            
+            if (currentMainView === 'Locker') {
+                const categoryDict = itemMap[currentTab] || {};
+                for (const [id, name] of Object.entries(categoryDict)) {
+                    if (lockerData[id] && lockerData[id] > 0) {
+                        createCard(grid, name, lockerData[id], id, 'locker');
+                    }
+                }
+            } else {
+                for (const [id, qty] of Object.entries(mailboxData)) {
+                    if (qty > 0) {
+                        let displayName = id.toUpperCase();
+                        for (let cat in itemMap) { if (itemMap[cat][id]) displayName = itemMap[cat][id]; }
+                        createCard(grid, displayName, qty, id, 'mailbox');
+                    }
+                }
+            }
+        }
+
+        function createCard(parent, name, qty, id, source) {
+            const div = document.createElement('div');
+            div.className = 'item-card';
+            div.onclick = () => openSellMenu(id, name, qty, source);
+            
+            const imgPath = getTexturePath(id);
+            div.innerHTML = `
+                <div class="card-top"><span class="name-box">${name}</span></div>
+                <img src="${imgPath}" class="item-image" onerror="this.src='unknown.png'">
+                <div class="card-bottom"><span class="num-box">${qty}</span></div>
+            `;
+            parent.appendChild(div);
+        }
+
+        // --- SELLING LOGIC ---
+
+        function openSellMenu(id, name, qty, source) {
+            playPopSound();
+            const unitPrice = itemPrices[name] || 0;
+            selectedItem = { 
+                id: id, 
+                name: name, 
+                source: source, 
+                maxQty: parseInt(qty), 
+                sellQty: 1, 
+                unitPrice: unitPrice 
+            };
+            
+            const modal = document.getElementById('sell-modal-overlay');
+            const imgPath = getTexturePath(id);
+            
+            document.getElementById('modal-item-name').innerText = name;
+            document.getElementById('modal-item-img').src = imgPath;
+            document.getElementById('modal-item-qty').innerText = "x" + qty;
+            
+            updateSellUI();
+            modal.style.display = 'flex';
+        }
+
+        function adjustSellQty(delta) {
+            if (!selectedItem.id) return;
+            const newQty = selectedItem.sellQty + delta;
+            
+            // Bounds check
+            if (newQty >= 1 && newQty <= selectedItem.maxQty) {
+                playPopSound();
+                selectedItem.sellQty = newQty;
+                updateSellUI();
+            }
+        }
+
+        function updateSellUI() {
+            const btnUp = document.getElementById('btn-qty-up');
+            const btnDown = document.getElementById('btn-qty-down');
+            const btnSell = document.getElementById('btn-confirm-sell');
+            const lblCount = document.getElementById('sell-lbl-count');
+            const lblPrice = document.getElementById('sell-lbl-price');
+
+            // Disable buttons at limits
+            btnDown.disabled = (selectedItem.sellQty <= 1);
+            btnUp.disabled = (selectedItem.sellQty >= selectedItem.maxQty);
+
+            if (selectedItem.unitPrice > 0) {
+                const total = selectedItem.unitPrice * selectedItem.sellQty;
+                lblCount.innerText = "SELL " + selectedItem.sellQty;
+                lblPrice.innerText = "$" + total;
+                btnSell.disabled = false;
+            } else {
+                lblCount.innerText = "CANNOT SELL";
+                lblPrice.innerText = "---";
+                btnSell.disabled = true;
+            }
+        }
+
+        function closeSellMenu() {
+            playPopSound();
+            document.getElementById('sell-modal-overlay').style.display = 'none';
+        }
+
+        function performSell() {
+            if (!selectedItem.id || selectedItem.unitPrice <= 0) return;
+            playSellSound();
+
+            const name = selectedItem.name;
+            const id = selectedItem.id;
+            const source = selectedItem.source;
+            const totalCash = selectedItem.unitPrice * selectedItem.sellQty;
+
+            // 1. Update Cash
+            const cashEl = document.getElementById('player-cash');
+            let currentCash = parseInt(cashEl.innerText.replace('$', '').replace(/,/g, '')) || 0;
+            currentCash += totalCash;
+            cashEl.innerText = "$" + currentCash;
+
+            // 2. Reduce Quantity
+            if (source === 'locker') {
+                lockerData[id] -= selectedItem.sellQty;
+                if (lockerData[id] <= 0) delete lockerData[id];
+            } else if (source === 'mailbox') {
+                mailboxData[id] -= selectedItem.sellQty;
+                if (mailboxData[id] <= 0) delete mailboxData[id];
+            }
+
+            // 3. Refresh UI
+            renderGrid();
+            closeSellMenu();
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            setThemeColor(currentThemeColor);
+        });
+    </script>
+</body>
+</html>
