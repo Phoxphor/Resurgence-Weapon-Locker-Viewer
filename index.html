@@ -295,26 +295,28 @@
             // --- AUDIO SYSTEM ---
     const sounds = {
         // Some weird ass issue with the sell sound was happening. I dont know why but I think this fixed it?, it was working in testing but not on the site lol
-        sell: new Audio('Sound Effects/sell.mp3'),
-        pops: Array.from({ length: 9 }, (_, i) => 
-            new Audio(`Sound Effects/pop0${i + 1}.mp3`)
-        )
+        sell: new Audio('./Sound%20Effects/sell.mp3'),
+    pops: Array.from({ length: 9 }, (_, i) => new Audio(`./Sound%20Effects/pop0${i + 1}.mp3`))
     };
 
     function playPopSound() {
-        let index = 0;
-        while (Math.random() > 0.5 && index < sounds.pops.length - 1) {
-            index++;
-        }
-
-        const sfx = sounds.pops[index];
+    let index = 0;
+    while (Math.random() > 0.5 && index < 8) { index++; }
+    
+    
+    const sfx = sounds.pops[index];
+    if (sfx) {
         sfx.currentTime = 0;
-        
-        // This should fix the error spam...
-        sfx.play().catch(error => {
-            console.warn("Audio waiting for user interaction (click) to start.");
-        });
+        sfx.play().catch(() => { /* Silence errors if user hasn't interacted yet */ });
     }
+}
+
+    function playSellSound() {
+        if (sounds.sell) {
+        sounds.sell.currentTime = 0;
+        sounds.sell.play().catch(e => console.warn("Sell sound blocked until user interaction."));
+    }
+}
         // --- PRICING DATA ---
         const itemPrices = {
             "VSS": 600, "FAMAS F1": 700, "AUG A3": 800, "G3": 800, "Galil": 800, 
