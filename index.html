@@ -293,30 +293,27 @@
     <script>
 
             // --- AUDIO SYSTEM ---
-            const sounds = {
-    // Change "Sound Effects" to "SoundEffects"
-    sell: new Audio('SoundEffects/sell.mp3'), 
-    pops: Array.from({ length: 9 }, (_, i) => new Audio(`SoundEffects/pop0${i + 1}.mp3`))
-};
+    const sounds = {
+        // Some weird ass issue with the sell sound was happening. I dont know why but I think this fixed it?, it was working in testing but not on the site lol
+        sell: new Audio('Sound Effects/sell.mp3'),
+        pops: Array.from({ length: 9 }, (_, i) => 
+            new Audio(`Sound Effects/pop0${i + 1}.mp3`)
+        )
+    };
 
     function playPopSound() {
         let index = 0;
-        
-        // Rarity Chain: 50% chance to move to the next "rarer" sound
-        // Loop continues as long as we win the flip and haven't hit the last sound (index 8)
         while (Math.random() > 0.5 && index < sounds.pops.length - 1) {
             index++;
         }
 
-        // Play the selected sound
         const sfx = sounds.pops[index];
-        sfx.currentTime = 0; // Reset in case it's already playing
-        sfx.play().catch(e => console.log("Audio play blocked: interaction required."));
-    }
-
-    function playSellSound() {
-        sounds.sell.currentTime = 0;
-        sounds.sell.play().catch(e => console.log("Audio play blocked."));
+        sfx.currentTime = 0;
+        
+        // This should fix the error spam...
+        sfx.play().catch(error => {
+            console.warn("Audio waiting for user interaction (click) to start.");
+        });
     }
         // --- PRICING DATA ---
         const itemPrices = {
